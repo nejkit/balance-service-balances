@@ -2,6 +2,7 @@ package main
 
 import (
 	rmq "balance-service/rmq"
+	db "balance-service/sql"
 	"fmt"
 
 	proto "github.com/nejkit/processing-proto/balances"
@@ -12,6 +13,7 @@ func main() {
 	rmq.InitRmq()
 	msgs := rmq.InitListener()
 	forever := make(chan (bool))
+	conDb := db.InitDb()
 	go func() {
 		for msg := range msgs {
 			var request proto.EmmitBalanceRequest
@@ -21,7 +23,7 @@ func main() {
 			}
 			fmt.Printf("Received Request: Id: %s, Address: %s, Amount: %d, Currency: %s\n",
 				request.GetId(), request.GetAddress(), request.GetAmount(), request.GetCurrency())
-
+			err = db.EmmitBalance(&request, conDb)
 		}
 	}()
 

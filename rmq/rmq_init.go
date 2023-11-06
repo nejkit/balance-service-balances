@@ -1,11 +1,15 @@
 package rmq
 
 import (
+	"time"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func InitRmq() {
-	con, err := amqp.Dial("amqp://admin:admin@localhost:5672/")
+
+	time.Sleep(15000)
+	con, err := amqp.Dial("amqp://admin:admin@message-broker:5672/")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -57,7 +61,7 @@ func InitRmq() {
 }
 
 func InitListener() <-chan amqp.Delivery {
-	con, err := amqp.Dial("amqp://admin:admin@localhost:5672/")
+	con, err := amqp.Dial("amqp://admin:admin@message-broker:5672/")
 	if err != nil {
 		panic(err.Error())
 	}
