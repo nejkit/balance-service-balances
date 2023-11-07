@@ -24,6 +24,10 @@ func main() {
 			fmt.Printf("Received Request: Id: %s, Address: %s, Amount: %d, Currency: %s\n",
 				request.GetId(), request.GetAddress(), request.GetAmount(), request.GetCurrency())
 			err = db.EmmitBalance(&request, conDb)
+			fmt.Println()
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		}
 	}()
 
