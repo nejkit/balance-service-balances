@@ -1,18 +1,39 @@
 package rmq
 
 import (
-	"time"
+	"context"
+	"sync"
 
+	proto "github.com/nejkit/processing-proto/balances"
 	amqp "github.com/rabbitmq/amqp091-go"
+	protoTuls "google.golang.org/protobuf/proto"
 )
 
-func InitRmq() {
+type con struct {
+	Connection *amqp.Connection
+}
 
-	time.Sleep(15000)
-	con, err := amqp.Dial("amqp://admin:admin@message-broker:5672/")
-	if err != nil {
-		panic(err.Error())
+var conInstance *con
+
+func getConnection() *con {
+	var lock = &sync.Mutex{}
+	if conInstance == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		amqpCon, err := amqp.Dial("amqp://admin:admin@message-broker:5672/")
+		if err != nil {
+			panic(err.Error())
+		}
+		conInstance = &con{
+			Connection: amqpCon,
+		}
+		return conInstance
 	}
+	return conInstance
+}
+
+func getCh() *amqp.Channel {
+	con := getConnection().Connection
 
 	ch, err := con.Channel()
 
@@ -20,7 +41,14 @@ func InitRmq() {
 		panic(err.Error())
 	}
 
-	err = ch.ExchangeDeclare(
+	return ch
+}
+
+func InitRmq() {
+	ch := getCh()
+	defer ch.Close()
+
+	ch.ExchangeDeclare(
 		"e.balances.forward",
 		"topic",
 		true,
@@ -29,7 +57,7 @@ func InitRmq() {
 		false,
 		nil)
 
-	balanceEmmitRequestQ, err := ch.QueueDeclare(
+	balanceEmmitRequestQ, _ := ch.QueueDeclare(
 		"q.balances.request.EmmitBalanceRequest",
 		true,
 		false,
@@ -37,14 +65,14 @@ func InitRmq() {
 		false,
 		nil)
 
-	err = ch.QueueBind(
+	ch.QueueBind(
 		balanceEmmitRequestQ.Name,
 		"r.balances.#.EmmitBalanceRequest.#",
 		"e.balances.forward",
 		false,
 		nil)
 
-	balanceEmmitResponceQ, err := ch.QueueDeclare(
+	balanceEmmitResponceQ, _ := ch.QueueDeclare(
 		"q.balances.response.EmmitBalanceResponse",
 		true,
 		false,
@@ -52,7 +80,7 @@ func InitRmq() {
 		false,
 		nil)
 
-	err = ch.QueueBind(
+	ch.QueueBind(
 		balanceEmmitResponceQ.Name,
 		"r.balances.#.EmmitBalanceResponse.#",
 		"e.balances.forward",
@@ -60,21 +88,30 @@ func InitRmq() {
 		nil)
 }
 
+func PublishEmmitResponse(response *proto.EmmitBalanceResponse) {
+	ch := getCh()
+	bytes, err := protoTuls.Marshal(response)
+	if err != nil {
+		return
+	}
+	ch.PublishWithContext(
+		context.Background(),
+		"e.balances.forward",
+		"r.balances.balance-service.EmmitBalanceResponse.#",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        bytes})
+}
+
 func InitListener() <-chan amqp.Delivery {
-	con, err := amqp.Dial("amqp://admin:admin@message-broker:5672/")
-	if err != nil {
-		panic(err.Error())
-	}
 
-	ch, err := con.Channel()
+	ch := getCh()
 
-	if err != nil {
-		panic(err.Error())
-	}
-
-	listener, err := ch.Consume(
+	listener, _ := ch.Consume(
 		"q.balances.request.EmmitBalanceRequest",
-		"",
+		"balance-service",
 		true,
 		false,
 		false,
