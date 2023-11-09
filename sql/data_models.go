@@ -1,8 +1,10 @@
 package sql
 
+import "time"
+
 type WalletModel struct {
 	Id        string
-	Created   uint64
+	Created   time.Time
 	IsDeleted bool
 }
 

@@ -17,6 +17,10 @@ github.com/matoous/go-nanoid v1.5.0 h1:VRorl6uCngneC4oUQqOYtO3S0H5QKFtKuKycFG3eu
 github.com/matoous/go-nanoid v1.5.0/go.mod h1:zyD2a71IubI24efhpvkJz+ZwfwagzgSO6UNiFsZKN7U=
 github.com/nejkit/processing-proto v0.0.0-20231103234244-c3efa13dacd0 h1:iW4ov6oDKrRbwdpcGQM4qWX1sY9lxSAHBAJOxfjNxTs=
 github.com/nejkit/processing-proto v0.0.0-20231103234244-c3efa13dacd0/go.mod h1:oHF+bgUiEtRVGLlWsVbBhaOrwb3nrkE8baSRtmzZqJU=
+github.com/nejkit/processing-proto v0.0.0-20231108195016-fc94649bddc5 h1:infOSzR3pPnPcvVHIpD33QogMpi9LHJzKyLJ4HfurhQ=
+github.com/nejkit/processing-proto v0.0.0-20231108195016-fc94649bddc5/go.mod h1:oHF+bgUiEtRVGLlWsVbBhaOrwb3nrkE8baSRtmzZqJU=
+github.com/nejkit/processing-proto v0.0.0-20231108221917-c0323a3910b2 h1:671aDjBubRV8zvprI+W6xgc1tojNhufmt2TTWaeNGGY=
+github.com/nejkit/processing-proto v0.0.0-20231108221917-c0323a3910b2/go.mod h1:oHF+bgUiEtRVGLlWsVbBhaOrwb3nrkE8baSRtmzZqJU=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rabbitmq/amqp091-go v1.9.0 h1:qrQtyzB4H8BQgEuJwhmVQqVHB9O4+MNDJCCAcpc3Aoo=
 github.com/rabbitmq/amqp091-go v1.9.0/go.mod h1:+jPrT9iY2eLjRaMSRHUhc3z14E/l85kv/f+6luSD3pc=

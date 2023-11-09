@@ -22,7 +22,7 @@ func getConnection() postgresConnection {
 	if connection == nil {
 		lock.Lock()
 		defer lock.Unlock()
-		con, err := pgx.Connect(context.Background(), "postgres://postgre:admin@posgres:5432/servicebalances")
+		con, err := pgx.Connect(context.Background(), "postgres://postgre:admin@postgres:5432/servicebalances")
 		if err != nil {
 			panic(err.Error())
 		}
@@ -32,22 +32,16 @@ func getConnection() postgresConnection {
 	return *connection
 }
 
-func EmmitBalance(request *proto.EmmitBalanceRequest) *proto.EmmitBalanceResponse {
+func EmmitBalance(request *proto.EmmitBalanceRequest) error {
 
 	if request.GetAmount() <= 0 {
-		return &proto.EmmitBalanceResponse{
-			Id:        request.Id,
-			ErrorCode: "InvalidAmountEmmit",
-		}
+		return nil
 	}
 	con := getConnection().Connection
 	var count int
 	err := con.QueryRow(context.Background(), "select count(*) from wallets where id = $1", request.GetAddress()).Scan(&count)
 	if err != nil {
-		return &proto.EmmitBalanceResponse{
-			Id:        request.Id,
-			ErrorCode: "InternalError",
-		}
+		return err
 	}
 
 	if count == 0 {
@@ -55,20 +49,14 @@ func EmmitBalance(request *proto.EmmitBalanceRequest) *proto.EmmitBalanceRespons
 		fmt.Println()
 		_, err = con.Exec(context.Background(), "insert into wallets(id, created) values($1, $2)", request.GetAddress(), time.Now())
 		if err != nil {
-			return &proto.EmmitBalanceResponse{
-				Id:        request.Id,
-				ErrorCode: "InternalError",
-			}
+			return err
 		}
 	}
 	err = con.QueryRow(context.Background(), "select count(*) from balances where walletaddress=$1 and currency=$2",
 		request.GetAddress(), request.GetCurrency()).Scan(&count)
 
 	if err != nil {
-		return &proto.EmmitBalanceResponse{
-			Id:        request.Id,
-			ErrorCode: "InternalError",
-		}
+		return err
 	}
 	idBalance, _ := idGen.ID(10)
 	if count == 0 {
@@ -76,10 +64,7 @@ func EmmitBalance(request *proto.EmmitBalanceRequest) *proto.EmmitBalanceRespons
 		_, err := con.Exec(context.Background(), "insert into balances(id, walletaddress, currency, actualbalance) values($1, $2, $3, $4)",
 			idBalance, request.GetAddress(), request.GetCurrency(), request.GetAmount())
 		if err != nil {
-			return &proto.EmmitBalanceResponse{
-				Id:        request.Id,
-				ErrorCode: "InternalError",
-			}
+			return err
 		}
 
 	} else {
@@ -88,19 +73,40 @@ func EmmitBalance(request *proto.EmmitBalanceRequest) *proto.EmmitBalanceRespons
 			request.GetAmount(), request.GetAddress(), request.GetCurrency())
 
 		if err != nil {
-			return &proto.EmmitBalanceResponse{
-				Id:        request.Id,
-				ErrorCode: "InternalError",
-			}
+			return err
 		}
 	}
 
-	return &proto.EmmitBalanceResponse{
-		Id:    request.Id,
-		State: proto.EmmitBalanceState_DONE,
-	}
+	return nil
 }
 
-func GetInfoAboutBalance(address string) BalanceModel {
+func GetInfoAboutBalance(address string) *proto.WalletInfo {
+	con := getConnection().Connection
+
+	walletInfo := &WalletModel{}
+	con.QueryRow(context.Background(), "select id, created, isdeleted from wallets where id = $1", address).Scan(&walletInfo.Id, &walletInfo.Created, &walletInfo.IsDeleted)
+	rows, _ := con.Query(context.Background(), "select id, currency, actualbalance, freezebalance from balances where walletaddress = $1", address)
+	balancesList := []*proto.BalanceInfo{}
+	for rows.Next() {
+		balanceModel := &BalanceModel{}
+		if err := rows.Scan(&balanceModel.Id, &balanceModel.Currency, &balanceModel.ActualBalance, &balanceModel.FreezeBalance); err != nil {
+			panic(err.Error())
+		}
+		balanceProto := proto.BalanceInfo{
+			Id:            balanceModel.Id,
+			Currency:      balanceModel.Currency,
+			ActualBalance: float32(balanceModel.ActualBalance),
+			FreezeBalance: float32(balanceModel.FreezeBalance),
+		}
+		balancesList = append(balancesList, &balanceProto)
+	}
+	response := proto.WalletInfo{
+		Address:      walletInfo.Id,
+		Created:      uint64(walletInfo.Created.UnixMilli()),
+		IsDeleted:    walletInfo.IsDeleted,
+		BalanceInfos: balancesList,
+	}
+	fmt.Println(response.String())
+	return &response
 
 }

@@ -6,7 +6,7 @@ import (
 
 	proto "github.com/nejkit/processing-proto/balances"
 	amqp "github.com/rabbitmq/amqp091-go"
-	protoTuls "google.golang.org/protobuf/proto"
+	googleProtoUtil "google.golang.org/protobuf/proto"
 )
 
 type con struct {
@@ -57,6 +57,22 @@ func InitRmq() {
 		false,
 		nil)
 
+	balanceGetWalletInfoRequestQ, _ := ch.QueueDeclare(
+		"q.balances.request.GetWalletInfoRequest",
+		true,
+		false,
+		false,
+		false,
+		nil)
+
+	balanceGetWalletInfoResponse, _ := ch.QueueDeclare(
+		"q.balances.response.GetWalletInfoResponse",
+		true,
+		false,
+		false,
+		false,
+		nil)
+
 	balanceEmmitRequestQ, _ := ch.QueueDeclare(
 		"q.balances.request.EmmitBalanceRequest",
 		true,
@@ -72,45 +88,27 @@ func InitRmq() {
 		false,
 		nil)
 
-	balanceEmmitResponceQ, _ := ch.QueueDeclare(
-		"q.balances.response.EmmitBalanceResponse",
-		true,
-		false,
-		false,
+	ch.QueueBind(
+		balanceGetWalletInfoRequestQ.Name,
+		"r.balances.#.GetWalletInfoRequest.#",
+		"e.balances.forward",
 		false,
 		nil)
 
 	ch.QueueBind(
-		balanceEmmitResponceQ.Name,
-		"r.balances.#.EmmitBalanceResponse.#",
+		balanceGetWalletInfoResponse.Name,
+		"r.balances.#.GetWalletInfoResponse.#",
 		"e.balances.forward",
 		false,
 		nil)
 }
 
-func PublishEmmitResponse(response *proto.EmmitBalanceResponse) {
-	ch := getCh()
-	bytes, err := protoTuls.Marshal(response)
-	if err != nil {
-		return
-	}
-	ch.PublishWithContext(
-		context.Background(),
-		"e.balances.forward",
-		"r.balances.balance-service.EmmitBalanceResponse.#",
-		false,
-		false,
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        bytes})
-}
-
-func InitListener() <-chan amqp.Delivery {
+func InitListener(queueName string) <-chan amqp.Delivery {
 
 	ch := getCh()
 
 	listener, _ := ch.Consume(
-		"q.balances.request.EmmitBalanceRequest",
+		queueName,
 		"balance-service",
 		true,
 		false,
@@ -120,4 +118,23 @@ func InitListener() <-chan amqp.Delivery {
 
 	return listener
 
+}
+
+func SendResponseGetWalletInfo(response *proto.GetWalletInfoResponse) {
+	ch := getCh()
+	body, err := googleProtoUtil.Marshal(response)
+	if err != nil {
+		return
+	}
+
+	ch.PublishWithContext(
+		context.Background(),
+		"e.balances.forward",
+		"r.balances.balance-service.GetWalletInfoResponse.#",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        body,
+		})
 }
