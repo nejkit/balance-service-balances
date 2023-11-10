@@ -4,6 +4,8 @@ github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaS
 github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg=
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/google/uuid v1.4.0 h1:MtMxsa51/r9yyhkyLsVeVt0B+BGQZzpQiTQ4eHZ8bc4=
+github.com/google/uuid v1.4.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
 github.com/jackc/pgpassfile v1.0.0/go.mod h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=
 github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a h1:bbPeKD0xmW/Y25WS6cokEszi5g+S0QxI/d45PkRi7Nk=
@@ -21,6 +23,8 @@ github.com/nejkit/processing-proto v0.0.0-20231108195016-fc94649bddc5 h1:infOSzR
 github.com/nejkit/processing-proto v0.0.0-20231108195016-fc94649bddc5/go.mod h1:oHF+bgUiEtRVGLlWsVbBhaOrwb3nrkE8baSRtmzZqJU=
 github.com/nejkit/processing-proto v0.0.0-20231108221917-c0323a3910b2 h1:671aDjBubRV8zvprI+W6xgc1tojNhufmt2TTWaeNGGY=
 github.com/nejkit/processing-proto v0.0.0-20231108221917-c0323a3910b2/go.mod h1:oHF+bgUiEtRVGLlWsVbBhaOrwb3nrkE8baSRtmzZqJU=
+github.com/nejkit/processing-proto v0.0.0-20231109144925-22203cd9d33e h1:IgtcsZfzheMokzm45eMTH0vQa9ZVV9IsQCWdJKWxJ2w=
+github.com/nejkit/processing-proto v0.0.0-20231109144925-22203cd9d33e/go.mod h1:oHF+bgUiEtRVGLlWsVbBhaOrwb3nrkE8baSRtmzZqJU=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rabbitmq/amqp091-go v1.9.0 h1:qrQtyzB4H8BQgEuJwhmVQqVHB9O4+MNDJCCAcpc3Aoo=
 github.com/rabbitmq/amqp091-go v1.9.0/go.mod h1:+jPrT9iY2eLjRaMSRHUhc3z14E/l85kv/f+6luSD3pc=
