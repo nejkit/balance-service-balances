@@ -10,12 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type postgresConnection struct {
-	Connection *pgx.Conn
-}
-
-var connection *postgresConnection
-
 func InitConnection(connectionString string) *pgx.Conn {
 	return sql.GetConnection(connectionString)
 }
@@ -38,7 +32,7 @@ func EmmitBalance(request *balances.EmmitBalanceRequest, connection *pgx.Conn) {
 	}
 }
 
-func GetInfoAboutBalance(inMessages <-chan *amqp091.Delivery, outMessages chan<- *balances.GetWalletInfoResponse, connection *pgx.Conn) {
+func GetInfoAboutBalance(inMessages <-chan amqp091.Delivery, outMessages chan<- *balances.GetWalletInfoResponse, connection *pgx.Conn) {
 	for msg := range inMessages {
 		var request balances.GetWalletInfoRequest
 		err := proto.Unmarshal(msg.Body, &request)

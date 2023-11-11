@@ -1,6 +1,8 @@
 package rmq
 
 import (
+	"balance-service/statics"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -26,7 +28,7 @@ func InitRmq(connectionString string) *amqp.Channel {
 		nil)
 
 	balanceGetWalletInfoRequestQ, _ := ch.QueueDeclare(
-		"q.balances.request.GetWalletInfoRequest",
+		statics.GetWalletInfoRequestQueue,
 		true,
 		false,
 		false,
@@ -42,7 +44,7 @@ func InitRmq(connectionString string) *amqp.Channel {
 		nil)
 
 	balanceEmmitRequestQ, _ := ch.QueueDeclare(
-		"q.balances.request.EmmitBalanceRequest",
+		statics.EmmitBalanceRequestQueue,
 		true,
 		false,
 		false,

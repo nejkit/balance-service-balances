@@ -11,7 +11,9 @@ require (
 	github.com/matoous/go-nanoid v1.5.0 // indirect
 	github.com/nejkit/processing-proto v0.0.0-20231109144925-22203cd9d33e // indirect
 	github.com/rabbitmq/amqp091-go v1.9.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
