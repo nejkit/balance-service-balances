@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/sirupsen/logrus"
 )
 
 func GetConnection(connectionString string) *pgx.Conn {
@@ -23,23 +24,30 @@ func CheckExistsWallet(address string, connection *pgx.Conn) bool {
 	return exists
 }
 
-func CheckExistsBalance(address string, currency string, connection *pgx.Conn) (bool, string) {
-	var id *string = nil
-	var exists bool = false
-	connection.QueryRow(context.Background(), CheckExistsBalanceQuery, address, currency).Scan(id)
-	if id != nil {
-		exists = true
+func CheckExistsBalance(address string, currency string, connection *pgx.Conn, logger *logrus.Logger) (bool, string) {
+	var id string
+	err := connection.QueryRow(context.Background(), CheckExistsBalanceQuery, address, currency).Scan(&id)
+	if err == pgx.ErrNoRows {
+		return false, ""
 	}
-	return exists, *id
+	if err != nil {
+		logger.Fatal(err.Error())
+		return false, ""
+	} else {
+		return true, id
+	}
 }
 
 func InsertWalletData(address string, connection *pgx.Conn) {
 	connection.Exec(context.Background(), InsertWalletQuery, address, time.Now())
 }
 
-func InsertBalanceData(address string, currency string, amount float64, connection *pgx.Conn) string {
+func InsertBalanceData(address string, currency string, amount float64, connection *pgx.Conn, logger *logrus.Logger) string {
 	id, _ := uuid.NewRandom()
-	connection.Exec(context.Background(), InsertBalanceQuery, id.String(), address, currency, amount)
+	_, err := connection.Exec(context.Background(), InsertBalanceQuery, id.String(), address, currency, amount)
+	if err != nil {
+		logger.Info(err.Error())
+	}
 	return id.String()
 }
 
@@ -47,19 +55,27 @@ func EmmitBalanceData(id string, amount float64, con *pgx.Conn) {
 	con.Exec(context.Background(), EmmitBalanceQuery, amount, id)
 }
 
-func GetWalletInfo(address string, con *pgx.Conn) WalletModel {
+func GetWalletInfo(address string, con *pgx.Conn, logger *logrus.Logger) *WalletModel {
 	var model WalletModel
-	con.QueryRow(context.Background(), GetWalletQuery, address).Scan(&model.Id, &model.Created, &model.IsDeleted)
-	return model
+	err := con.QueryRow(context.Background(), GetWalletQuery, address).Scan(&model.Id, &model.Created, &model.IsDeleted)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+	logger.Info("WalletModel: ", "Id: ", model.Id, " Created: ", model.Created, " Deleted: ", model.IsDeleted)
+	return &model
 }
 
-func GetBalancesByWallet(address string, con *pgx.Conn) []*BalanceModel {
+func GetBalancesByWallet(address string, con *pgx.Conn, logger *logrus.Logger) []*BalanceModel {
 	var balanceModels []*BalanceModel
-	rows, _ := con.Query(context.Background(), GetBalancesQuery, address)
+	rows, err := con.Query(context.Background(), GetBalancesQuery, address)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 	for rows.Next() {
 		var balanceModel BalanceModel
 		rows.Scan(&balanceModel.Id, &balanceModel.Currency, &balanceModel.ActualBalance, &balanceModel.FreezeBalance)
 		balanceModels = append(balanceModels, &balanceModel)
+		logger.Info("BalanceModel: ", "Id: ", balanceModel.Id, " Cur: ", balanceModel.Currency, " Balance: ", balanceModel.ActualBalance)
 	}
 
 	return balanceModels
