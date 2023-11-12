@@ -11,7 +11,6 @@ import (
 
 func main() {
 	chanRabbit := rmq.InitRmq("amqp://admin:admin@rabbitmq:5672")
-	pgxConnection := services.InitConnection("postgres://postgre:admin@postgres:5432/servicebalances")
 	logger := logrus.New()
 	logger.SetLevel(logrus.InfoLevel)
 	var vg sync.WaitGroup
