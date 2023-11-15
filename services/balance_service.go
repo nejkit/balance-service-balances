@@ -1,55 +1,55 @@
 package services
 
 import (
-	"balance-service/sql"
+	"balance-service/abstractions"
+	"context"
 
-	pgx "github.com/jackc/pgx/v5"
 	"github.com/nejkit/processing-proto/balances"
-	"github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
-func InitConnection(connectionString string) *pgx.Conn {
-	return sql.GetConnection(connectionString)
+type BalanceService struct {
+	logger         *logrus.Logger
+	walletAdapter  abstractions.WalletAdapter
+	balanceAdapter abstractions.BalanceAdapter
 }
 
-func EmmitBalance(request *balances.EmmitBalanceRequest, connection *pgx.Conn, logger *logrus.Logger) {
+func NewBalanceService(logger *logrus.Logger, walletAdapter abstractions.WalletAdapter, balanceAdapter abstractions.BalanceAdapter) BalanceService {
+	return BalanceService{walletAdapter: walletAdapter, balanceAdapter: balanceAdapter, logger: logger}
+}
+
+func (s *BalanceService) EmmitBalance(ctx context.Context, request *balances.EmmitBalanceRequest) {
+	if request.GetCurrency() == "" {
+		s.logger.Errorln("Wrong currency, skip event")
+		return
+	}
 
 	if request.GetAmount() <= 0 {
-
+		s.logger.Errorln("Wrong amount, skip event")
+		return
 	}
 
-	if !sql.CheckExistsWallet(request.GetAddress(), connection) {
-		sql.InsertWalletData(request.GetAddress(), connection)
+	if request.GetAddress() == "" {
+		s.logger.Errorln("Wrong address, skip event")
+		return
 	}
 
-	balanceExists, id := sql.CheckExistsBalance(request.GetAddress(), request.GetCurrency(), connection, logger)
-	if balanceExists {
-		sql.EmmitBalanceData(id, request.GetAmount(), connection)
+	walletInfo := s.walletAdapter.GetWalletInfo(ctx, request.GetAddress())
+	if walletInfo == nil {
+		s.walletAdapter.InsertWalletInfo(ctx, request)
+	}
+
+	balanceInfo := s.balanceAdapter.GetBalanceInfo(ctx, request.GetAddress(), request.GetCurrency())
+	if balanceInfo == nil {
+		go s.balanceAdapter.InsertBalanceInfo(ctx, request)
 	} else {
-		sql.InsertBalanceData(request.GetAddress(), request.GetCurrency(), request.GetAmount(), connection, logger)
+		go s.balanceAdapter.EmmitBalanceInfo(ctx, request, balanceInfo.Id)
 	}
 }
 
-func GetInfoAboutBalance(inMessages <-chan amqp091.Delivery, outMessages chan<- *balances.GetWalletInfoResponse, connection *pgx.Conn, logger *logrus.Logger) {
-	forever := make(chan bool)
-	for msg := range inMessages {
-		var request balances.GetWalletInfoRequest
-		err := proto.Unmarshal(msg.Body, &request)
-		logger.Info("Address:", request.GetAddress())
-		if err != nil {
-			msg.Nack(false, false)
-		} else {
-			msg.Ack(false)
-		}
-		walletInfo := sql.GetWalletInfo(request.GetAddress(), connection, logger)
-		balancesInfo := sql.GetBalancesByWallet(request.GetAddress(), connection, logger)
-
-		response := Mapper(walletInfo, balancesInfo)
-
-		outMessages <- &balances.GetWalletInfoResponse{Id: request.GetId(), WalletInfo: &response}
-		logger.Info("Put to sender chan: ", response.String())
-	}
-	<-forever
+func (s *BalanceService) GetInfoAboutBalance(ctx context.Context, request *balances.GetWalletInfoRequest) *balances.GetWalletInfoResponse {
+	walletInfo := s.walletAdapter.GetWalletInfo(ctx, request.GetAddress())
+	balancesInfo := s.balanceAdapter.GetBalancesInfo(ctx, request.GetAddress())
+	responseBody := Mapper(walletInfo, balancesInfo)
+	return &balances.GetWalletInfoResponse{Id: request.GetId(), WalletInfo: &responseBody}
 }

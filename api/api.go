@@ -1,36 +1,38 @@
 package api
 
 import (
-	"balance-service/rmq"
-	"balance-service/services"
-	"balance-service/statics"
+	"balance-service/abstractions"
+	"balance-service/hanlder"
+	"context"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/nejkit/processing-proto/balances"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
-func InnitEmmitBalanceApi(rmqChannel *amqp091.Channel, pgxCon *pgx.Conn, logger *logrus.Logger) {
-	listener := rmq.InitListener(statics.EmmitBalanceRequestQueue, rmqChannel)
-	forever := make(chan bool)
-	for msg := range listener {
-		var request balances.EmmitBalanceRequest
-		err := proto.Unmarshal(msg.Body, &request)
-		if err != nil {
-			msg.Nack(false, false)
-		} else {
-			msg.Ack(false)
-		}
-		go services.EmmitBalance(&request, pgxCon, logger)
-	}
-	<-forever
+type RouterApi struct {
+	logger            *logrus.Logger
+	handler           hanlder.Handler
+	emmitBalanceRoute <-chan amqp091.Delivery
+	walletInfoRoute   <-chan amqp091.Delivery
+	walletInfoSender  abstractions.AmqpSender
 }
 
-func InnitGetWalletInfoApi(rmqChannel *amqp091.Channel, pgxCon *pgx.Conn, logger *logrus.Logger) {
-	listener := rmq.InitListener(statics.GetWalletInfoRequestQueue, rmqChannel)
-	senderChan := make(chan *balances.GetWalletInfoResponse, 1)
-	go services.GetInfoAboutBalance(listener, senderChan, pgxCon, logger)
-	go rmq.SendWalletInfo(senderChan, rmqChannel, logger)
+func NewRouter(logger *logrus.Logger, handler hanlder.Handler, emBalRoute <-chan amqp091.Delivery, walInfRoute <-chan amqp091.Delivery, walletInfoSender abstractions.AmqpSender) RouterApi {
+	return RouterApi{logger: logger, handler: handler, emmitBalanceRoute: emBalRoute, walletInfoRoute: walInfRoute, walletInfoSender: walletInfoSender}
+}
+
+func (r *RouterApi) StartApi(ctx context.Context) {
+	for {
+		select {
+		case <-r.emmitBalanceRoute:
+			{
+				r.handler.EmmitBalance(ctx, <-r.emmitBalanceRoute)
+			}
+		case <-r.walletInfoRoute:
+			{
+				response := r.handler.GetWalletInfo(ctx, <-r.walletInfoRoute)
+				r.walletInfoSender.SendMessage(ctx, response)
+			}
+		}
+	}
 }
