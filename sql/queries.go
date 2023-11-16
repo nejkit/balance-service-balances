@@ -9,4 +9,6 @@ const (
 	GetWalletQuery          = "select id, created, isdeleted from wallets where id = $1"
 	GetBalancesQuery        = "select id, currency, actualbalance, freezebalance from balances where walletaddress = $1"
 	GetBalanceQuery         = "select id, currency, actualbalance, freezebalance from balances where walletaddress = $1 and currency = $2"
+	LockBalanceQuery        = "update balances set actualbalance = actualbalance - $2, freezebalance = freezebalance + $2 where id = $1"
+	UnLockBalanceQuery      = "update balances set actualbalance = actualbalance + $2, freezebalance = freezebalance - $2 where address = $1 and currency = $2"
 )

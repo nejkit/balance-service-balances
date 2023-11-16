@@ -1,19 +1,20 @@
 package postgres
 
 import (
+	"balance-service/external/balances"
 	"balance-service/sql"
 	"context"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/nejkit/processing-proto/balances"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type WalletAdapter struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewWalletAdapter(connection *pgx.Conn) WalletAdapter {
+func NewWalletAdapter(connection *pgxpool.Pool) WalletAdapter {
 	return WalletAdapter{conn: connection}
 }
 

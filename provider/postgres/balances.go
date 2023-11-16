@@ -1,20 +1,22 @@
 package postgres
 
 import (
+	"balance-service/external/balances"
 	"balance-service/sql"
 	"context"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/nejkit/processing-proto/balances"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type BalanceAdapter struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewBalanceAdapter(con *pgx.Conn) BalanceAdapter {
-	return BalanceAdapter{conn: con}
+func NewBalanceAdapter(connPool *pgxpool.Pool) BalanceAdapter {
+	return BalanceAdapter{conn: connPool}
+
 }
 
 func (a *BalanceAdapter) EmmitBalanceInfo(ctx context.Context, info *balances.EmmitBalanceRequest, id string) {
@@ -48,4 +50,12 @@ func (a *BalanceAdapter) GetBalanceInfo(ctx context.Context, address string, cur
 	}
 	return balanceInfo
 
+}
+
+func (a *BalanceAdapter) LockTransferBalance(ctx context.Context, id string, amount float64) {
+	a.conn.Exec(ctx, sql.LockBalanceQuery, id, amount)
+}
+
+func (a *BalanceAdapter) UnlockTransferBalance(ctx context.Context, address string, amount float64, cur string) {
+	a.conn.Exec(ctx, sql.UnLockBalanceQuery, address, amount, cur)
 }

@@ -2,9 +2,9 @@ package hanlder
 
 import (
 	"balance-service/abstractions"
+	"balance-service/external/balances"
 	"context"
 
-	"github.com/nejkit/processing-proto/balances"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"

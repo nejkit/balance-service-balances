@@ -1,9 +1,8 @@
 package abstractions
 
 import (
+	"balance-service/external/balances"
 	"context"
-
-	"github.com/nejkit/processing-proto/balances"
 )
 
 type BalanceService interface {

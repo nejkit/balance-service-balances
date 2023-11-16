@@ -1,10 +1,9 @@
 package abstractions
 
 import (
+	"balance-service/external/balances"
 	"balance-service/sql"
 	"context"
-
-	"github.com/nejkit/processing-proto/balances"
 )
 
 type WalletAdapter interface {
@@ -17,4 +16,6 @@ type BalanceAdapter interface {
 	InsertBalanceInfo(ctx context.Context, info *balances.EmmitBalanceRequest)
 	GetBalancesInfo(ctx context.Context, address string) []*sql.BalanceModel
 	GetBalanceInfo(ctx context.Context, address string, currency string) *sql.BalanceModel
+	LockTransferBalance(ctx context.Context, id string, amount float64)
+	UnlockTransferBalance(ctx context.Context, address string, amount float64, cur string)
 }

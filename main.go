@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+
 	logger := logrus.New()
 	logger.SetLevel(logrus.InfoLevel)
 	ctxRoot := context.Background()
@@ -47,7 +48,7 @@ func main() {
 
 				emmitBalanceChannel.Close()
 				walletInfoListenerChannel.Close()
-				pgxCon.Close(ctxRoot)
+				pgxCon.Close()
 				amqpFactory.ClsConnection()
 				break
 			}

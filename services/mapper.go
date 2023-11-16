@@ -1,9 +1,8 @@
 package services
 
 import (
+	"balance-service/external/balances"
 	"balance-service/sql"
-
-	"github.com/nejkit/processing-proto/balances"
 )
 
 func Mapper(walletInfo *sql.WalletModel, balancesInfo []*sql.BalanceModel) balances.WalletInfo {
