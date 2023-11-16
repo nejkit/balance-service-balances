@@ -1,0 +1,3 @@
+[submodule "external/dto"]
+	path = external/dto
+	url = https://github.com/nejkit/processing-proto
