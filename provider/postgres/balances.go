@@ -43,12 +43,12 @@ func (a *BalanceAdapter) GetBalancesInfo(ctx context.Context, address string) []
 }
 
 func (a *BalanceAdapter) GetBalanceInfo(ctx context.Context, address string, currency string) *sql.BalanceModel {
-	var balanceInfo *sql.BalanceModel
+	var balanceInfo sql.BalanceModel
 	err := a.conn.QueryRow(ctx, sql.GetBalanceQuery, address, currency).Scan(&balanceInfo.Id, &balanceInfo.Currency, &balanceInfo.ActualBalance, &balanceInfo.FreezeBalance)
 	if err == pgx.ErrNoRows {
 		return nil
 	}
-	return balanceInfo
+	return &balanceInfo
 
 }
 

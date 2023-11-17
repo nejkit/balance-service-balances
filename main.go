@@ -2,6 +2,7 @@ package main
 
 import (
 	"balance-service/api"
+	"balance-service/external/balances"
 	"balance-service/hanlder"
 	"balance-service/provider/amqp"
 	"balance-service/provider/postgres"
@@ -23,20 +24,20 @@ func main() {
 	ctx, cancel := context.WithCancel(ctxRoot)
 	amqpFactory := amqp.NewAmqpFactory("amqp://admin:admin@rabbitmq:5672", logger)
 	pgxCon := postgres.GetConnection(ctx, "postgres://postgre:admin@postgres:5432/servicebalances", logger)
+
 	walletAdapter := postgres.NewWalletAdapter(pgxCon)
 	balanceAdapter := postgres.NewBalanceAdapter(pgxCon)
+
 	balanceService := services.NewBalanceService(logger, &walletAdapter, &balanceAdapter)
-	handler := hanlder.NewHandler(logger, &balanceService)
+	amqpFactory.InitRmq()
+	walletSender := amqpFactory.NewSender("e.balances.forward", "r.balances.balance-service.GetWalletInfoResponse.#")
+	apiRouter := api.NewApi(logger, &walletSender, &balanceService)
+	handler := hanlder.NewHandler(logger, apiRouter)
+	listenerEmmitBalance := amqp.NewAmqpListener[balances.EmmitBalanceRequest](ctx, amqpFactory, statics.EmmitBalanceRequestQueue, amqp.GetParserEmmitBalanceRequest(), handler.GetEmmitBalanceHanler())
+	listenerGetWalletInfo := amqp.NewAmqpListener[balances.GetWalletInfoRequest](ctx, amqpFactory, statics.GetWalletInfoRequestQueue, amqp.GetParserWalletInfoRequest(), handler.GetWalletInfoHandler())
 
-	emmitBalanceChannel := amqpFactory.NewRmqChan()
-	walletInfoListenerChannel := amqpFactory.NewRmqChan()
-
-	emmitBalanceRoute := amqpFactory.NewConsumeChan(statics.EmmitBalanceRequestQueue, emmitBalanceChannel)
-	walletInfoRoute := amqpFactory.NewConsumeChan(statics.GetWalletInfoRequestQueue, walletInfoListenerChannel)
-	walletInfoSender := amqpFactory.NewSender("e.balances.forward", "r.balances.#.GetWalletInfoResponse.#")
-
-	apiRouter := api.NewRouter(logger, handler, emmitBalanceRoute, walletInfoRoute, &walletInfoSender)
-	go apiRouter.StartApi(ctx)
+	go listenerEmmitBalance.Run(ctx)
+	go listenerGetWalletInfo.Run(ctx)
 
 	exit := make(chan os.Signal, 1)
 	for {
@@ -46,12 +47,11 @@ func main() {
 			{
 				cancel()
 
-				emmitBalanceChannel.Close()
-				walletInfoListenerChannel.Close()
 				pgxCon.Close()
 				amqpFactory.ClsConnection()
 				break
 			}
 		}
+
 	}
 }

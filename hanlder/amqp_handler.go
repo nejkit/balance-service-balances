@@ -1,43 +1,31 @@
 package hanlder
 
 import (
-	"balance-service/abstractions"
+	"balance-service/api"
 	"balance-service/external/balances"
 	"context"
 
-	"github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 type Handler struct {
-	logger         *logrus.Logger
-	balanceService abstractions.BalanceService
+	logger *logrus.Logger
+	api    api.BalanceApi
 }
 
-func NewHandler(logger *logrus.Logger, balanceService abstractions.BalanceService) Handler {
-	return Handler{logger: logger, balanceService: balanceService}
+func NewHandler(logger *logrus.Logger, balanceapi api.BalanceApi) Handler {
+	return Handler{logger: logger, api: balanceapi}
 }
 
-func (h *Handler) EmmitBalance(ctx context.Context, msg amqp091.Delivery) {
-	var request balances.EmmitBalanceRequest
-	err := proto.Unmarshal(msg.Body, &request)
-	if err != nil {
-		h.logger.Errorln("Error parse message. Skipping...")
-		msg.Nack(false, false)
+func (h *Handler) GetEmmitBalanceHanler() func(context.Context, *balances.EmmitBalanceRequest) {
+	return func(ctx context.Context, ebr *balances.EmmitBalanceRequest) {
+		h.api.EmmitBalanceApi(ctx, ebr)
 	}
-	msg.Ack(false)
-	h.balanceService.EmmitBalance(ctx, &request)
 }
 
-func (h *Handler) GetWalletInfo(ctx context.Context, msg amqp091.Delivery) *balances.GetWalletInfoResponse {
-	var request balances.GetWalletInfoRequest
-	err := proto.Unmarshal(msg.Body, &request)
-	if err != nil {
-		h.logger.Errorln("Error parse message. Skipping...")
-		msg.Nack(false, false)
+func (h *Handler) GetWalletInfoHandler() func(context.Context, *balances.GetWalletInfoRequest) {
+	return func(ctx context.Context, gwir *balances.GetWalletInfoRequest) {
+		h.logger.Infoln("Event body: ", gwir.String())
+		h.api.GetWalletInfoApi(ctx, gwir)
 	}
-	msg.Ack(false)
-	return h.balanceService.GetInfoAboutBalance(ctx, &request)
-
 }
