@@ -2,37 +2,28 @@ package api
 
 import (
 	"balance-service/abstractions"
-	"balance-service/hanlder"
+	"balance-service/external/balances"
 	"context"
 
-	"github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 )
 
-type RouterApi struct {
-	logger            *logrus.Logger
-	handler           hanlder.Handler
-	emmitBalanceRoute <-chan amqp091.Delivery
-	walletInfoRoute   <-chan amqp091.Delivery
-	walletInfoSender  abstractions.AmqpSender
+type BalanceApi struct {
+	logger           *logrus.Logger
+	balanceservice   abstractions.BalanceService
+	walletInfoSender abstractions.AmqpSender
 }
 
-func NewRouter(logger *logrus.Logger, handler hanlder.Handler, emBalRoute <-chan amqp091.Delivery, walInfRoute <-chan amqp091.Delivery, walletInfoSender abstractions.AmqpSender) RouterApi {
-	return RouterApi{logger: logger, handler: handler, emmitBalanceRoute: emBalRoute, walletInfoRoute: walInfRoute, walletInfoSender: walletInfoSender}
+func NewApi(logger *logrus.Logger, walletInfoSender abstractions.AmqpSender, bs abstractions.BalanceService) BalanceApi {
+	return BalanceApi{logger: logger, walletInfoSender: walletInfoSender, balanceservice: bs}
 }
 
-func (r *RouterApi) StartApi(ctx context.Context) {
-	for {
-		select {
-		case <-r.emmitBalanceRoute:
-			{
-				r.handler.EmmitBalance(ctx, <-r.emmitBalanceRoute)
-			}
-		case <-r.walletInfoRoute:
-			{
-				response := r.handler.GetWalletInfo(ctx, <-r.walletInfoRoute)
-				r.walletInfoSender.SendMessage(ctx, response)
-			}
-		}
-	}
+func (r *BalanceApi) EmmitBalanceApi(ctx context.Context, request *balances.EmmitBalanceRequest) {
+	r.balanceservice.EmmitBalance(ctx, request)
+}
+
+func (r *BalanceApi) GetWalletInfoApi(ctx context.Context, request *balances.GetWalletInfoRequest) {
+	response := r.balanceservice.GetInfoAboutBalance(ctx, request)
+	r.logger.Infoln("Response body: ", response.String())
+	go r.walletInfoSender.SendMessage(ctx, response)
 }
