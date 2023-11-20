@@ -53,3 +53,26 @@ func (s *BalanceService) GetInfoAboutBalance(ctx context.Context, request *balan
 	responseBody := Mapper(walletInfo, balancesInfo)
 	return &balances.GetWalletInfoResponse{Id: request.GetId(), WalletInfo: &responseBody}
 }
+
+func (s *BalanceService) LockBalance(ctx context.Context, request *balances.LockBalanceRequest) *balances.LockBalanceResponse {
+	balanceInfo := s.balanceAdapter.GetBalanceInfo(ctx, request.GetAddress(), request.GetCurrency())
+	if balanceInfo == nil {
+		return &balances.LockBalanceResponse{
+			Id:           request.GetId(),
+			State:        balances.LockBalanceStatus_REJECTED,
+			ErrorMessage: "Not exists balance",
+		}
+	}
+	if balanceInfo.ActualBalance < float64(request.GetAmount()) {
+		return &balances.LockBalanceResponse{
+			Id:           request.GetId(),
+			State:        balances.LockBalanceStatus_REJECTED,
+			ErrorMessage: "Not enough balance",
+		}
+	}
+	s.balanceAdapter.LockTransferBalance(ctx, balanceInfo.Id, float64(request.GetAmount()))
+	return &balances.LockBalanceResponse{
+		Id:    request.GetId(),
+		State: balances.LockBalanceStatus_DONE,
+	}
+}
