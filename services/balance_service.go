@@ -60,8 +60,8 @@ func (s *BalanceService) LockBalance(ctx context.Context, request *balances.Lock
 		return &balances.LockBalanceResponse{
 			Id:    request.GetId(),
 			State: balances.LockBalanceStatus_REJECTED,
-			ErrorMessage: &balances.ErrorMessage{
-				ErrorCode: balances.ErrorCodes_ERROR_CODE_NOT_EXISTS_BALANCE,
+			ErrorMessage: &balances.BalanceErrorMessage{
+				ErrorCode: balances.BalancesErrorCodes_BALANCE_ERROR_CODE_NOT_EXISTS_BALANCE,
 				Message:   "Balance not exists",
 			},
 		}
@@ -71,8 +71,8 @@ func (s *BalanceService) LockBalance(ctx context.Context, request *balances.Lock
 		return &balances.LockBalanceResponse{
 			Id:    request.GetId(),
 			State: balances.LockBalanceStatus_REJECTED,
-			ErrorMessage: &balances.ErrorMessage{
-				ErrorCode: balances.ErrorCodes_ERROR_CODE_NOT_ENOUGH_BALANCE,
+			ErrorMessage: &balances.BalanceErrorMessage{
+				ErrorCode: balances.BalancesErrorCodes_BALANCE_ERROR_CODE_NOT_ENOUGH_BALANCE,
 				Message:   "Not enough balance",
 			},
 		}
