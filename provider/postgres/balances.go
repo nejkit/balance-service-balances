@@ -4,6 +4,7 @@ import (
 	"balance-service/external/balances"
 	"balance-service/sql"
 	"context"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -12,10 +13,11 @@ import (
 
 type BalanceAdapter struct {
 	conn *pgxpool.Pool
+	mtx  sync.Mutex
 }
 
 func NewBalanceAdapter(connPool *pgxpool.Pool) BalanceAdapter {
-	return BalanceAdapter{conn: connPool}
+	return BalanceAdapter{conn: connPool, mtx: sync.Mutex{}}
 
 }
 
@@ -61,12 +63,29 @@ func (a *BalanceAdapter) GetBalanceInfo(ctx context.Context, address string, cur
 }
 
 func (a *BalanceAdapter) LockTransferBalance(ctx context.Context, id string, amount float64) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	con, _ := a.conn.Acquire(ctx)
 	defer con.Release()
 	con.Exec(ctx, sql.LockBalanceQuery, id, amount)
 }
 
+func (a *BalanceAdapter) TransferMoney(ctx context.Context, balanceSender sql.BalanceModel, balanceRecepient sql.BalanceModel, amount float64) error {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	con, _ := a.conn.Acquire(ctx)
+	defer con.Release()
+
+	con.Exec(ctx, sql.EmmitBalanceQuery, amount, balanceRecepient.Id)
+
+	con.Exec(ctx, sql.ChargeFreezeBalanceQuery, amount, balanceSender.Id)
+
+	return nil
+}
+
 func (a *BalanceAdapter) UnlockTransferBalance(ctx context.Context, address string, amount float64, cur string) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	con, _ := a.conn.Acquire(ctx)
 	defer con.Release()
 	con.Exec(ctx, sql.UnLockBalanceQuery, address, amount, cur)

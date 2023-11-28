@@ -12,10 +12,11 @@ type BalanceService struct {
 	logger         *logrus.Logger
 	walletAdapter  abstractions.WalletAdapter
 	balanceAdapter abstractions.BalanceAdapter
+	transferSender abstractions.AmqpSender
 }
 
-func NewBalanceService(logger *logrus.Logger, walletAdapter abstractions.WalletAdapter, balanceAdapter abstractions.BalanceAdapter) BalanceService {
-	return BalanceService{walletAdapter: walletAdapter, balanceAdapter: balanceAdapter, logger: logger}
+func NewBalanceService(logger *logrus.Logger, walletAdapter abstractions.WalletAdapter, balanceAdapter abstractions.BalanceAdapter, ts abstractions.AmqpSender) BalanceService {
+	return BalanceService{walletAdapter: walletAdapter, balanceAdapter: balanceAdapter, logger: logger, transferSender: ts}
 }
 
 func (s *BalanceService) EmmitBalance(ctx context.Context, request *balances.EmmitBalanceRequest) {
@@ -83,4 +84,40 @@ func (s *BalanceService) LockBalance(ctx context.Context, request *balances.Lock
 		Id:    request.GetId(),
 		State: balances.LockBalanceStatus_DONE,
 	}
+}
+
+func (s *BalanceService) ProcessTransfer(ctx context.Context, request *balances.CreateTransferRequest) {
+	response := &balances.Transfer{
+		Id:            request.Id,
+		SenderData:    request.SenderData,
+		RecepientData: request.RecepientData,
+		State:         balances.TransferState_TRANSFER_STATE_IN_PROGRESS,
+	}
+	go s.transferSender.SendMessage(ctx, response)
+	balanceSender := s.balanceAdapter.GetBalanceInfo(ctx, request.GetSenderData().GetAddress(), request.GetSenderData().GetCurrency())
+	balanceRecepient := s.balanceAdapter.GetBalanceInfo(ctx, request.GetRecepientData().GetAddress(), request.GetRecepientData().GetCurrency())
+	if balanceSender.FreezeBalance < float64(request.SenderData.GetAmount()) {
+		s.rejectTransfer(ctx, response)
+		return
+	}
+	if balanceRecepient.FreezeBalance < float64(request.RecepientData.GetAmount()) {
+		s.rejectTransfer(ctx, response)
+		return
+	}
+	s.balanceAdapter.TransferMoney(ctx, *balanceSender, *balanceRecepient, float64(request.SenderData.Amount))
+	s.balanceAdapter.TransferMoney(ctx, *balanceRecepient, *balanceSender, float64(request.RecepientData.Amount))
+
+	response.State = balances.TransferState_TRANSFER_STATE_DONE
+	s.transferSender.SendMessage(ctx, response)
+}
+
+func (s *BalanceService) rejectTransfer(ctx context.Context, response *balances.Transfer) {
+
+	response.State = balances.TransferState_TRANSFER_STATE_REJECT
+	response.Error = &balances.BalanceErrorMessage{
+		ErrorCode: balances.BalancesErrorCodes_BALANCE_ERROR_CODE_NOT_ENOUGH_BALANCE,
+		Message:   "Not enough balance",
+	}
+	go s.transferSender.SendMessage(ctx, response)
+	return
 }

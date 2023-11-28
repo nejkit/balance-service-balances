@@ -29,9 +29,11 @@ func main() {
 
 	walletAdapter := postgres.NewWalletAdapter(pgxCon)
 	balanceAdapter := postgres.NewBalanceAdapter(pgxCon)
-
-	balanceService := services.NewBalanceService(logger, &walletAdapter, &balanceAdapter)
 	amqpFactory.InitRmq()
+	transferSender := amqpFactory.NewSender(statics.ExNameBalances, statics.TransferBalanceResponseQueue)
+
+	balanceService := services.NewBalanceService(logger, &walletAdapter, &balanceAdapter, &transferSender)
+
 	walletSender := amqpFactory.NewSender(statics.ExNameBalances, statics.RkGetWalletInfoResponse)
 	lockSender := amqpFactory.NewSender(statics.ExNameBalances, statics.RkLockBalanceResponse)
 	apiRouter := api.NewApi(logger, &walletSender, &lockSender, &balanceService)
