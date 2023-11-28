@@ -1,15 +1,45 @@
 package amqp
 
 import (
+	"balance-service/external/balances"
 	"balance-service/statics"
+	"fmt"
+	"time"
 
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 type AmqpFactory struct {
 	logger *logrus.Logger
 	con    *amqp091.Connection
+}
+
+func GetParserEmmitBalanceRequest() func([]byte) (*balances.EmmitBalanceRequest, error) {
+	return func(body []byte) (*balances.EmmitBalanceRequest, error) {
+		var request balances.EmmitBalanceRequest
+		err := proto.Unmarshal(body, &request)
+		if err != nil {
+			fmt.Println(err.Error())
+			return nil, err
+		}
+		fmt.Println(request.String())
+		return &request, nil
+	}
+}
+
+func GetParserWalletInfoRequest() func([]byte) (*balances.GetWalletInfoRequest, error) {
+	return func(body []byte) (*balances.GetWalletInfoRequest, error) {
+		var request balances.GetWalletInfoRequest
+		err := proto.Unmarshal(body, &request)
+		if err != nil {
+			fmt.Println(err.Error())
+			return nil, err
+		}
+		fmt.Println(request.String())
+		return &request, nil
+	}
 }
 
 func NewAmqpFactory(connectionString string, loggger *logrus.Logger) AmqpFactory {
@@ -19,6 +49,7 @@ func NewAmqpFactory(connectionString string, loggger *logrus.Logger) AmqpFactory
 		con, err = amqp091.Dial(connectionString)
 		if err != nil {
 			loggger.Errorln("Rabbit unvailable. Reazon: ", err.Error())
+			time.Sleep(5 * time.Second)
 			continue
 		}
 		break
@@ -37,7 +68,7 @@ func (f *AmqpFactory) NewRmqChan() *amqp091.Channel {
 
 func (f *AmqpFactory) NewSender(exchange string, rk string) AmqpSender {
 	ch := f.NewRmqChan()
-	return AmqpSender{channel: ch, logger: f.logger}
+	return AmqpSender{channel: ch, logger: f.logger, exchange: exchange, rk: rk}
 }
 
 func (f *AmqpFactory) NewConsumeChan(qName string, rmqChannel *amqp091.Channel) <-chan amqp091.Delivery {
