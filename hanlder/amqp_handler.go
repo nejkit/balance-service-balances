@@ -29,3 +29,10 @@ func (h *Handler) GetWalletInfoHandler() func(context.Context, *balances.GetWall
 		h.api.GetWalletInfoApi(ctx, gwir)
 	}
 }
+
+func (h *Handler) GetLockBalanceHandler() func(context.Context, *balances.LockBalanceRequest) {
+	return func(ctx context.Context, lbr *balances.LockBalanceRequest) {
+		h.logger.Info("Event body: ", lbr.String())
+		h.api.LockBalanceApi(ctx, lbr)
+	}
+}
