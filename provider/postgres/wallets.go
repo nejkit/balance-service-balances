@@ -4,6 +4,7 @@ import (
 	"balance-service/external/balances"
 	"balance-service/sql"
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -19,14 +20,22 @@ func NewWalletAdapter(connection *pgxpool.Pool) WalletAdapter {
 }
 
 func (a *WalletAdapter) InsertWalletInfo(ctx context.Context, info *balances.EmmitBalanceRequest) {
-	a.conn.Exec(ctx, sql.InsertWalletQuery, info.GetAddress(), time.Now())
+	con, _ := a.conn.Acquire(ctx)
+	defer con.Release()
+	con.Exec(ctx, sql.InsertWalletQuery, info.GetAddress(), time.Now())
 }
 
 func (a *WalletAdapter) GetWalletInfo(ctx context.Context, address string) *sql.WalletModel {
 	var walletInfo sql.WalletModel
-	err := a.conn.QueryRow(ctx, sql.GetWalletQuery, address).Scan(&walletInfo.Id, &walletInfo.Created, &walletInfo.IsDeleted)
+	con, err := a.conn.Acquire(ctx)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer con.Release()
+	err = con.QueryRow(ctx, sql.GetWalletQuery, address).Scan(&walletInfo.Id, &walletInfo.Created, &walletInfo.IsDeleted)
 	if err == pgx.ErrNoRows {
 		return nil
 	}
+	fmt.Println("Address from db: ", walletInfo.Id)
 	return &walletInfo
 }
