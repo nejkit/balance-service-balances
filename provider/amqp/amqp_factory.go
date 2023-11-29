@@ -54,6 +54,16 @@ func GetParserLockBalanceRequest() func([]byte) (*balances.LockBalanceRequest, e
 	}
 }
 
+func GetParserTransferRequest() func([]byte) (*balances.CreateTransferRequest, error) {
+	return func(b []byte) (*balances.CreateTransferRequest, error) {
+		var request balances.CreateTransferRequest
+		if err := proto.Unmarshal(b, &request); err != nil {
+			return nil, err
+		}
+		return &request, nil
+	}
+}
+
 func NewAmqpFactory(connectionString string, loggger *logrus.Logger) AmqpFactory {
 	var con *amqp091.Connection
 	var err error
@@ -130,9 +140,13 @@ func (f *AmqpFactory) InitRmq() {
 	balanceEmmitRequestQ, _ := ch.QueueDeclare(statics.EmmitBalanceRequestQueue, true, false, false, false, nil)
 	lockBalanceRequestQ, _ := ch.QueueDeclare(statics.LockBalanceRequestQueue, true, false, false, false, nil)
 	lockBalanceResponseQ, _ := ch.QueueDeclare(statics.LockBalanceResponseQueue, true, false, false, false, nil)
+	createTransferRequestQ, _ := ch.QueueDeclare(statics.TransferBalanceRequestQueue, true, false, false, false, nil)
+	createTransferResponseQ, _ := ch.QueueDeclare(statics.TransferBalanceResponseQueue, true, false, false, false, nil)
 	ch.QueueBind(lockBalanceResponseQ.Name, statics.RkLockBalanceResponse, statics.ExNameBalances, false, nil)
 	ch.QueueBind(lockBalanceRequestQ.Name, statics.RkLockBalanceRequest, statics.ExNameBalances, false, nil)
 	ch.QueueBind(balanceEmmitRequestQ.Name, statics.RkEmmitBalance, statics.ExNameBalances, false, nil)
 	ch.QueueBind(balanceGetWalletInfoRequestQ.Name, statics.RkGetWalletInfoRequest, statics.ExNameBalances, false, nil)
 	ch.QueueBind(balanceGetWalletInfoResponse.Name, statics.RkGetWalletInfoResponse, statics.ExNameBalances, false, nil)
+	ch.QueueBind(createTransferRequestQ.Name, statics.RkTransferBalanceRequest, statics.ExNameBalances, false, nil)
+	ch.QueueBind(createTransferResponseQ.Name, statics.RkTransferBalanceResponse, statics.ExNameBalances, false, nil)
 }

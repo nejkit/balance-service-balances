@@ -5,33 +5,32 @@ import (
 	"balance-service/external/balances"
 	"context"
 
-	"github.com/sirupsen/logrus"
+	logger "github.com/sirupsen/logrus"
 )
 
 type BalanceService struct {
-	logger         *logrus.Logger
 	walletAdapter  abstractions.WalletAdapter
 	balanceAdapter abstractions.BalanceAdapter
 	transferSender abstractions.AmqpSender
 }
 
-func NewBalanceService(logger *logrus.Logger, walletAdapter abstractions.WalletAdapter, balanceAdapter abstractions.BalanceAdapter, ts abstractions.AmqpSender) BalanceService {
-	return BalanceService{walletAdapter: walletAdapter, balanceAdapter: balanceAdapter, logger: logger, transferSender: ts}
+func NewBalanceService(walletAdapter abstractions.WalletAdapter, balanceAdapter abstractions.BalanceAdapter, ts abstractions.AmqpSender) BalanceService {
+	return BalanceService{walletAdapter: walletAdapter, balanceAdapter: balanceAdapter, transferSender: ts}
 }
 
 func (s *BalanceService) EmmitBalance(ctx context.Context, request *balances.EmmitBalanceRequest) {
 	if request.GetCurrency() == "" {
-		s.logger.Errorln("Wrong currency, skip event")
+		logger.Errorln("Wrong currency, skip event")
 		return
 	}
 
 	if request.GetAmount() <= 0 {
-		s.logger.Errorln("Wrong amount, skip event")
+		logger.Errorln("Wrong amount, skip event")
 		return
 	}
 
 	if request.GetAddress() == "" {
-		s.logger.Errorln("Wrong address, skip event")
+		logger.Errorln("Wrong address, skip event")
 		return
 	}
 
@@ -67,7 +66,7 @@ func (s *BalanceService) LockBalance(ctx context.Context, request *balances.Lock
 			},
 		}
 	}
-	s.logger.Infoln("Id: ", balanceInfo.Id, "Amount: ", balanceInfo.ActualBalance)
+	logger.Infoln("Id: ", balanceInfo.Id, "Amount: ", balanceInfo.ActualBalance)
 	if balanceInfo.ActualBalance < float64(request.GetAmount()) {
 		return &balances.LockBalanceResponse{
 			Id:    request.GetId(),
@@ -104,8 +103,16 @@ func (s *BalanceService) ProcessTransfer(ctx context.Context, request *balances.
 		s.rejectTransfer(ctx, response)
 		return
 	}
-	s.balanceAdapter.TransferMoney(ctx, *balanceSender, *balanceRecepient, float64(request.SenderData.Amount))
-	s.balanceAdapter.TransferMoney(ctx, *balanceRecepient, *balanceSender, float64(request.RecepientData.Amount))
+
+	if err := s.balanceAdapter.TransferMoney(ctx, response.SenderData, response.RecepientData, balanceSender.Id, balanceRecepient.Id); err != nil {
+		response.Error = &balances.BalanceErrorMessage{
+			ErrorCode: balances.BalancesErrorCodes_BALANCE_ERROR_CODE_INTERNAL,
+			Message:   "InternalError",
+		}
+		response.State = balances.TransferState_TRANSFER_STATE_REJECT
+		s.transferSender.SendMessage(ctx, response)
+		return
+	}
 
 	response.State = balances.TransferState_TRANSFER_STATE_DONE
 	s.transferSender.SendMessage(ctx, response)

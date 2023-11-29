@@ -18,5 +18,5 @@ type BalanceAdapter interface {
 	GetBalanceInfo(ctx context.Context, address string, currency string) *sql.BalanceModel
 	LockTransferBalance(ctx context.Context, id string, amount float64)
 	UnlockTransferBalance(ctx context.Context, address string, amount float64, cur string)
-	TransferMoney(ctx context.Context, balanceSender sql.BalanceModel, balanceRecepient sql.BalanceModel, amount float64) error
+	TransferMoney(ctx context.Context, senderOptions *balances.TransferOptions, receiptOptions *balances.TransferOptions, senderId string, receiptId string) error
 }
