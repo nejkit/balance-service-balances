@@ -54,6 +54,17 @@ func GetParserLockBalanceRequest() func([]byte) (*balances.LockBalanceRequest, e
 	}
 }
 
+func GetParserUnLockBalanceRequest() func([]byte) (*balances.UnLockBalanceRequest, error) {
+	return func(b []byte) (*balances.UnLockBalanceRequest, error) {
+		var request balances.UnLockBalanceRequest
+		err := proto.Unmarshal(b, &request)
+		if err != nil {
+			return nil, err
+		}
+		return &request, nil
+	}
+}
+
 func GetParserTransferRequest() func([]byte) (*balances.CreateTransferRequest, error) {
 	return func(b []byte) (*balances.CreateTransferRequest, error) {
 		var request balances.CreateTransferRequest

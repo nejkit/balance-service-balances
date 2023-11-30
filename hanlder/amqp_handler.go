@@ -9,7 +9,7 @@ import (
 )
 
 type Handler struct {
-	api    api.BalanceApi
+	api api.BalanceApi
 }
 
 func NewHandler(balanceapi api.BalanceApi) Handler {
@@ -36,9 +36,16 @@ func (h *Handler) GetLockBalanceHandler() func(context.Context, *balances.LockBa
 	}
 }
 
-func (h *Handler) GetTransferHandler() func (context.Context, *balances.CreateTransferRequest) {
+func (h *Handler) GetUnLockBalanceHandler() func(context.Context, *balances.UnLockBalanceRequest) {
+	return func(ctx context.Context, lbr *balances.UnLockBalanceRequest) {
+		logger.Infoln("Event body: ", lbr.String())
+		h.api.UnLockBalanceApi(ctx, lbr)
+	}
+}
+
+func (h *Handler) GetTransferHandler() func(context.Context, *balances.CreateTransferRequest) {
 	return func(ctx context.Context, ctr *balances.CreateTransferRequest) {
 		logger.Infoln("Event body: ", ctr.String())
-		
+		h.api.TransferApi(ctx, ctr)
 	}
 }

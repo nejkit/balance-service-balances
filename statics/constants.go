@@ -7,6 +7,8 @@ const (
 	GetWalletInfoResponseQueue   = "q.balances.response.GetWalletInfoResponse"
 	LockBalanceRequestQueue      = "q.balances.request.LockBalanceRequest"
 	LockBalanceResponseQueue     = "q.balances.response.LockBalanceResponse"
+	UnLockBalanceRequestQueue    = "q.balances.request.UnLockBalanceRequest"
+	UnLockBalanceResponseQueue   = "q.balances.response.UnLockBalanceResponse"
 	TransferBalanceRequestQueue  = "q.balances.request.TransferBalanceRequest"
 	TransferBalanceResponseQueue = "q.balances.response.TransferBalanceResponse"
 	RkTransferBalanceRequest     = "r.balances.#.TransferBalanceRequest.#"
@@ -16,4 +18,6 @@ const (
 	RkGetWalletInfoResponse      = "r.balances.#.GetWalletInfoResponse.#"
 	RkLockBalanceRequest         = "r.#.request.LockBalanceRequest.#"
 	RkLockBalanceResponse        = "r.#.response.LockBalanceResponse.#"
+	RkUnLockBalanceRequest       = "r.#.request.UnLockBalanceRequest.#"
+	RkunLockBalanceResponse      = "r.#.response.UnLockBalanceResponse.#"
 )

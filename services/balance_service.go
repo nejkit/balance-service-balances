@@ -85,6 +85,10 @@ func (s *BalanceService) LockBalance(ctx context.Context, request *balances.Lock
 	}
 }
 
+func (s *BalanceService) UnLockBalance(ctx context.Context, request *balances.UnLockBalanceRequest) {
+	go s.balanceAdapter.UnlockTransferBalance(ctx, request.GetAddress(), float64(request.GetAmount()), request.GetCurrency())
+}
+
 func (s *BalanceService) ProcessTransfer(ctx context.Context, request *balances.CreateTransferRequest) {
 	response := &balances.Transfer{
 		Id:            request.Id,

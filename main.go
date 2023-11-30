@@ -42,10 +42,12 @@ func main() {
 	listenerGetWalletInfo := amqp.NewAmqpListener[balances.GetWalletInfoRequest](ctx, amqpFactory, statics.GetWalletInfoRequestQueue, amqp.GetParserWalletInfoRequest(), handler.GetWalletInfoHandler())
 	listenerLockBalance := amqp.NewAmqpListener[balances.LockBalanceRequest](ctx, amqpFactory, statics.LockBalanceRequestQueue, amqp.GetParserLockBalanceRequest(), handler.GetLockBalanceHandler())
 	listenerTransfer := amqp.NewAmqpListener[balances.CreateTransferRequest](ctx, amqpFactory, statics.TransferBalanceRequestQueue, amqp.GetParserTransferRequest(), handler.GetTransferHandler())
+	listenerUnLockBalance := amqp.NewAmqpListener[balances.UnLockBalanceRequest](ctx, amqpFactory, statics.UnLockBalanceRequestQueue, amqp.GetParserUnLockBalanceRequest(), handler.GetUnLockBalanceHandler())
 	go listenerEmmitBalance.Run(ctx)
 	go listenerGetWalletInfo.Run(ctx)
 	go listenerLockBalance.Run(ctx)
 	go listenerTransfer.Run(ctx)
+	go listenerUnLockBalance.Run(ctx)
 	exit := make(chan os.Signal, 1)
 	for {
 		signal.Notify(exit, os.Interrupt, syscall.SIGTERM)

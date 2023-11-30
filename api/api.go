@@ -34,6 +34,10 @@ func (r *BalanceApi) LockBalanceApi(ctx context.Context, request *balances.LockB
 	go r.lockInfoSender.SendMessage(ctx, response)
 }
 
+func (r *BalanceApi) UnLockBalanceApi(ctx context.Context, request *balances.UnLockBalanceRequest) {
+	go r.balanceservice.UnLockBalance(ctx, request)
+}
+
 func (r *BalanceApi) TransferApi(ctx context.Context, request *balances.CreateTransferRequest) {
 	go r.balanceservice.ProcessTransfer(ctx, request)
 }
