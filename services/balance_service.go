@@ -97,18 +97,28 @@ func (s *BalanceService) ProcessTransfer(ctx context.Context, request *balances.
 		State:         balances.TransferState_TRANSFER_STATE_IN_PROGRESS,
 	}
 	go s.transferSender.SendMessage(ctx, response)
-	balanceSender := s.balanceAdapter.GetBalanceInfo(ctx, request.GetSenderData().GetAddress(), request.GetSenderData().GetCurrency())
-	balanceRecepient := s.balanceAdapter.GetBalanceInfo(ctx, request.GetRecepientData().GetAddress(), request.GetRecepientData().GetCurrency())
-	if balanceSender.FreezeBalance < float64(request.SenderData.GetAmount()) {
+	balanceSenderCur1 := s.balanceAdapter.GetBalanceInfo(ctx, request.GetSenderData().GetAddress(), request.GetSenderData().GetCurrency())
+	balanceSenderCur2 := s.balanceAdapter.GetBalanceInfo(ctx, request.GetRecepientData().GetAddress(), request.GetRecepientData().GetCurrency())
+	balanceRecepientCur1 := s.balanceAdapter.GetBalanceInfo(ctx, request.GetRecepientData().GetAddress(), request.GetSenderData().GetCurrency())
+	balanceRecepientCur2 := s.balanceAdapter.GetBalanceInfo(ctx, request.GetSenderData().GetAddress(), request.GetRecepientData().GetCurrency())
+	if balanceSenderCur1.FreezeBalance < float64(request.SenderData.GetAmount()) {
 		s.rejectTransfer(ctx, response)
 		return
 	}
-	if balanceRecepient.FreezeBalance < float64(request.RecepientData.GetAmount()) {
+	if balanceSenderCur2.FreezeBalance < float64(request.RecepientData.GetAmount()) {
 		s.rejectTransfer(ctx, response)
 		return
 	}
 
-	if err := s.balanceAdapter.TransferMoney(ctx, response.SenderData, response.RecepientData, balanceSender.Id, balanceRecepient.Id); err != nil {
+	if err := s.balanceAdapter.TransferMoney(
+		ctx,
+		balanceSenderCur1.Id,
+		balanceSenderCur2.Id,
+		balanceRecepientCur1.Id,
+		balanceRecepientCur2.Id,
+		request.SenderData.Amount,
+		request.RecepientData.Amount,
+	); err != nil {
 		response.Error = &balances.BalanceErrorMessage{
 			ErrorCode: balances.BalancesErrorCodes_BALANCE_ERROR_CODE_INTERNAL,
 			Message:   "InternalError",

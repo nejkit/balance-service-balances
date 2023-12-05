@@ -153,6 +153,7 @@ func (f *AmqpFactory) InitRmq() {
 	lockBalanceResponseQ, _ := ch.QueueDeclare(statics.LockBalanceResponseQueue, true, false, false, false, nil)
 	createTransferRequestQ, _ := ch.QueueDeclare(statics.TransferBalanceRequestQueue, true, false, false, false, nil)
 	createTransferResponseQ, _ := ch.QueueDeclare(statics.TransferBalanceResponseQueue, true, false, false, false, nil)
+	unLockBalanceRequestQ, _ := ch.QueueDeclare(statics.UnLockBalanceRequestQueue, true, false, false, false, nil)
 	ch.QueueBind(lockBalanceResponseQ.Name, statics.RkLockBalanceResponse, statics.ExNameBalances, false, nil)
 	ch.QueueBind(lockBalanceRequestQ.Name, statics.RkLockBalanceRequest, statics.ExNameBalances, false, nil)
 	ch.QueueBind(balanceEmmitRequestQ.Name, statics.RkEmmitBalance, statics.ExNameBalances, false, nil)
@@ -160,4 +161,5 @@ func (f *AmqpFactory) InitRmq() {
 	ch.QueueBind(balanceGetWalletInfoResponse.Name, statics.RkGetWalletInfoResponse, statics.ExNameBalances, false, nil)
 	ch.QueueBind(createTransferRequestQ.Name, statics.RkTransferBalanceRequest, statics.ExNameBalances, false, nil)
 	ch.QueueBind(createTransferResponseQ.Name, statics.RkTransferBalanceResponse, statics.ExNameBalances, false, nil)
+	ch.QueueBind(unLockBalanceRequestQ.Name, statics.RkUnLockBalanceRequest, statics.ExNameBalances, false, nil)
 }

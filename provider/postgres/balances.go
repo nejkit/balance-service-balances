@@ -74,12 +74,8 @@ func (a *BalanceAdapter) LockTransferBalance(ctx context.Context, id string, amo
 	con.Exec(ctx, sql.LockBalanceQuery, id, amount)
 }
 
-func (a *BalanceAdapter) TransferMoney(
-	ctx context.Context,
-	senderOptions *balances.TransferOptions,
-	receiptOptions *balances.TransferOptions,
-	senderId string,
-	receiptId string) error {
+func (a *BalanceAdapter) TransferMoney(ctx context.Context,
+	sender1cur, sender2cur, recepient1cur, recepient2cur string, senderAmount, recepientAmount float64) error {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	con, _ := a.conn.Acquire(ctx)
@@ -89,10 +85,10 @@ func (a *BalanceAdapter) TransferMoney(
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, sql.ChargeFreezeBalanceQuery, senderOptions.GetAmount(), senderId)
-	_, err = tx.Exec(ctx, sql.ChargeFreezeBalanceQuery, receiptOptions.GetAmount(), receiptId)
-	_, err = tx.Exec(ctx, sql.EmmitBalanceQuery, senderOptions.GetAmount(), receiptId)
-	_, err = tx.Exec(ctx, sql.EmmitBalanceQuery, receiptOptions.GetAmount(), senderId)
+	_, err = tx.Exec(ctx, sql.ChargeFreezeBalanceQuery, senderAmount, sender1cur)
+	_, err = tx.Exec(ctx, sql.ChargeFreezeBalanceQuery, recepientAmount, sender2cur)
+	_, err = tx.Exec(ctx, sql.EmmitBalanceQuery, senderAmount, recepient1cur)
+	_, err = tx.Exec(ctx, sql.EmmitBalanceQuery, recepientAmount, recepient2cur)
 	if err != nil {
 		tx.Rollback(ctx)
 		return err
@@ -106,5 +102,5 @@ func (a *BalanceAdapter) UnlockTransferBalance(ctx context.Context, address stri
 	defer a.mtx.Unlock()
 	con, _ := a.conn.Acquire(ctx)
 	defer con.Release()
-	con.Exec(ctx, sql.UnLockBalanceQuery, address, amount, cur)
+	con.Exec(ctx, sql.UnLockBalanceQuery, address, cur, amount)
 }
