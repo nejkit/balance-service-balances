@@ -5,16 +5,15 @@ import (
 	"balance-service/external/balances"
 	"context"
 
-	"github.com/sirupsen/logrus"
+	logger "github.com/sirupsen/logrus"
 )
 
 type Handler struct {
-	logger *logrus.Logger
-	api    api.BalanceApi
+	api api.BalanceApi
 }
 
-func NewHandler(logger *logrus.Logger, balanceapi api.BalanceApi) Handler {
-	return Handler{logger: logger, api: balanceapi}
+func NewHandler(balanceapi api.BalanceApi) Handler {
+	return Handler{api: balanceapi}
 }
 
 func (h *Handler) GetEmmitBalanceHanler() func(context.Context, *balances.EmmitBalanceRequest) {
@@ -25,14 +24,28 @@ func (h *Handler) GetEmmitBalanceHanler() func(context.Context, *balances.EmmitB
 
 func (h *Handler) GetWalletInfoHandler() func(context.Context, *balances.GetWalletInfoRequest) {
 	return func(ctx context.Context, gwir *balances.GetWalletInfoRequest) {
-		h.logger.Infoln("Event body: ", gwir.String())
+		logger.Infoln("Event body: ", gwir.String())
 		h.api.GetWalletInfoApi(ctx, gwir)
 	}
 }
 
 func (h *Handler) GetLockBalanceHandler() func(context.Context, *balances.LockBalanceRequest) {
 	return func(ctx context.Context, lbr *balances.LockBalanceRequest) {
-		h.logger.Info("Event body: ", lbr.String())
+		logger.Infoln("Event body: ", lbr.String())
 		h.api.LockBalanceApi(ctx, lbr)
+	}
+}
+
+func (h *Handler) GetUnLockBalanceHandler() func(context.Context, *balances.UnLockBalanceRequest) {
+	return func(ctx context.Context, lbr *balances.UnLockBalanceRequest) {
+		logger.Infoln("Event body: ", lbr.String())
+		h.api.UnLockBalanceApi(ctx, lbr)
+	}
+}
+
+func (h *Handler) GetTransferHandler() func(context.Context, *balances.CreateTransferRequest) {
+	return func(ctx context.Context, ctr *balances.CreateTransferRequest) {
+		logger.Infoln("Event body: ", ctr.String())
+		h.api.TransferApi(ctx, ctr)
 	}
 }

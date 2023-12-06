@@ -29,19 +29,25 @@ func main() {
 
 	walletAdapter := postgres.NewWalletAdapter(pgxCon)
 	balanceAdapter := postgres.NewBalanceAdapter(pgxCon)
-
-	balanceService := services.NewBalanceService(logger, &walletAdapter, &balanceAdapter)
 	amqpFactory.InitRmq()
+	transferSender := amqpFactory.NewSender(statics.ExNameBalances, statics.RkTransferBalanceResponse)
+
+	balanceService := services.NewBalanceService(&walletAdapter, &balanceAdapter, &transferSender)
+
 	walletSender := amqpFactory.NewSender(statics.ExNameBalances, statics.RkGetWalletInfoResponse)
 	lockSender := amqpFactory.NewSender(statics.ExNameBalances, statics.RkLockBalanceResponse)
-	apiRouter := api.NewApi(logger, &walletSender, &lockSender, &balanceService)
-	handler := hanlder.NewHandler(logger, apiRouter)
+	apiRouter := api.NewApi(&walletSender, &lockSender, &balanceService)
+	handler := hanlder.NewHandler(apiRouter)
 	listenerEmmitBalance := amqp.NewAmqpListener[balances.EmmitBalanceRequest](ctx, amqpFactory, statics.EmmitBalanceRequestQueue, amqp.GetParserEmmitBalanceRequest(), handler.GetEmmitBalanceHanler())
 	listenerGetWalletInfo := amqp.NewAmqpListener[balances.GetWalletInfoRequest](ctx, amqpFactory, statics.GetWalletInfoRequestQueue, amqp.GetParserWalletInfoRequest(), handler.GetWalletInfoHandler())
 	listenerLockBalance := amqp.NewAmqpListener[balances.LockBalanceRequest](ctx, amqpFactory, statics.LockBalanceRequestQueue, amqp.GetParserLockBalanceRequest(), handler.GetLockBalanceHandler())
+	listenerTransfer := amqp.NewAmqpListener[balances.CreateTransferRequest](ctx, amqpFactory, statics.TransferBalanceRequestQueue, amqp.GetParserTransferRequest(), handler.GetTransferHandler())
+	listenerUnLockBalance := amqp.NewAmqpListener[balances.UnLockBalanceRequest](ctx, amqpFactory, statics.UnLockBalanceRequestQueue, amqp.GetParserUnLockBalanceRequest(), handler.GetUnLockBalanceHandler())
 	go listenerEmmitBalance.Run(ctx)
 	go listenerGetWalletInfo.Run(ctx)
 	go listenerLockBalance.Run(ctx)
+	go listenerTransfer.Run(ctx)
+	go listenerUnLockBalance.Run(ctx)
 	exit := make(chan os.Signal, 1)
 	for {
 		signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
